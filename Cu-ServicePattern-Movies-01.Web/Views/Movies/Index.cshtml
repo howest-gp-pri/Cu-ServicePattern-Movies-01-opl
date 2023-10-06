@@ -1,0 +1,48 @@
+﻿@model MoviesIndexViewModel
+
+<div class="row">
+    <div class="col col-lg-6 mx-auto">
+        <h4>@Model.PageTitle</h4>
+        <a asp-controller="Movies"
+           asp-action="Create"
+           class="btn btn-outline-info">
+            New
+        </a>
+        <table class="table table-hover table-responsive">
+            <tr>
+                <th>Title</th>
+                <th>Price</th>
+                <th>Action</th>
+            </tr>
+            @foreach(var movie in Model.Movies)
+            {
+                <tr>
+                    <td>@movie.Name</td>
+                    <td>&euro; @movie.Price.ToString("F")</td>
+                    <td>
+                        <a asp-controller="Movies"
+                           asp-action="Info"
+                           asp-route-id="@movie.Id"
+                           class="btn btn-outline-info">
+                            Info
+                        </a> ||
+                        <a asp-controller="Movies"
+                           asp-action="Update"
+                           asp-route-id="@movie.Id"
+                           class="btn btn-outline-primary">
+                            Update
+                        </a>
+                        ||
+                        <a asp-controller="Movies"
+                           asp-action="ConfirmDelete"
+                           asp-route-id="@movie.Id"
+                           class="btn btn-outline-danger">
+                            Delete
+                        </a>
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+</div>
+

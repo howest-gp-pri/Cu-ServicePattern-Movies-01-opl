@@ -1,0 +1,10 @@
+﻿@model MoviesUpdateViewModel
+<div class="row">
+    <div class="col col-lg-5 mx-auto border border-1 rounded rounded-2">
+        <form asp-controller="Movies" asp-action="Update" method="post" enctype="multipart/form-data">
+            <partial name="_MovieFormPartial" model="@Model" />
+            <input asp-for="Id" />
+            <button type="submit" class="btn btn-primary mt-2 mb-2">Update</button>
+        </form>
+    </div>
+</div>

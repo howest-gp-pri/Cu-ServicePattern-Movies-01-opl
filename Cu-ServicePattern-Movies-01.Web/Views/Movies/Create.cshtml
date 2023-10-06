@@ -1,0 +1,10 @@
+﻿@model MoviesCreateViewModel
+
+<div class="row">
+    <div class="col col-lg-5 mx-auto border border-1 rounded rounded-2">
+        <form asp-controller="Movies" asp-action="Create" method="post" enctype="multipart/form-data">
+            <partial name="_MovieFormPartial" model="@Model" />
+            <button type="submit" class="btn btn-primary mt-2 mb-2">Save</button>
+        </form>
+    </div>
+</div>

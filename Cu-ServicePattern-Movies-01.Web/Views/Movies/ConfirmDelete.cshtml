@@ -1,0 +1,16 @@
+﻿@model MoviesDeleteViewModel
+
+<div class="row">
+    <div class="col col-lg-8 mx-auto">
+        <div class="alert alert-primary" role="alert">
+            Are you sure you want to delete @Model.Name?
+            <form asp-controller="Movies" asp-action="Delete" method="post">
+                <div class="form-group">
+                    <input asp-for="Id" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-danger">Delete</button>
+                <a asp-controller="Movies" asp-action="Index" class="btn btn-info">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>

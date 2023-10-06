@@ -1,0 +1,25 @@
+﻿@model MoviesInfoViewModel
+
+
+<div class="row">
+    <div class="col col-lg-4 mx-auto">
+        <div class="card" style="width: 18rem;">
+            <!--tips: add .text-center,.text-right to the .card to change card text alignment-->
+            <img src="/images/@Model.Image" class="card-img-top" alt="...">
+            <div class="card-body">
+                <h5 class="card-title">@Model.Name</h5>
+                <h6 class="card-subtitle mb-2 text-muted">
+                   @if(Model.ReleaseDate != null)
+                   { 
+                        @Model.ReleaseDate.Value.ToShortDateString()
+                   }
+                </h6>
+                <h6 class="card-subtitle mb-2 text-muted">
+                    <a asp-controller="Companies" asp-action="Movies" asp-route-id="@Model.Company.Id">
+                    @Model.Company.Name</a>
+                </h6>
+                <a asp-controller="Movies" asp-action="Index" class="btn btn-primary">Back</a>
+            </div>
+        </div>
+    </div>
+</div>
