@@ -5,6 +5,7 @@ using Cu_ServicePattern_Movies_01.ViewModels;
 using Cu_ServicePattern_Movies_01.Services.Interfaces;
 using Cu_ServicePattern_Movies_01.Core;
 using Cu_ServicePattern_Movies_01.Core.Interfaces;
+using Cu_ServicePattern_Movies_01.Core.Services.Interfaces;
 
 namespace Cu_ServicePattern_Movies_01.Controllers
 {
@@ -13,26 +14,29 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         private readonly MovieDbContext _movieDbContext;
         private readonly IFormBuilderService _formBuilderService;
         private readonly IFileService _fileService;
+        private readonly IMovieService _movieService;
 
-        public MoviesController(MovieDbContext movieDbContext, IFormBuilderService formBuilderService, IFileService fileService)
+        public MoviesController(MovieDbContext movieDbContext, IFormBuilderService formBuilderService, IFileService fileService, IMovieService movieService)
         {
             _movieDbContext = movieDbContext;
             _formBuilderService = formBuilderService;
             _fileService = fileService;
+            _movieService = movieService;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            var movies = await _movieService.GetAllAsync();
             var moviesIndexViewModel = new MoviesIndexViewModel
             {
-                Movies = await _movieDbContext.Movies.Select(m =>
+                Movies = movies.Select(m =>
                 new MoviesInfoViewModel
                 {
                     Id = m.Id,
                     Name = m.Title,
                     Price = m.Price,
-                }).ToListAsync(),
+                })
             };
             moviesIndexViewModel.PageTitle = "Our movies";
             return View(moviesIndexViewModel);
@@ -40,10 +44,7 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         [HttpGet]
         public async Task<IActionResult> Info(int id)
         {
-            var movie = await _movieDbContext
-                .Movies
-                .Include(m => m.Company)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var movie = await _movieService.GetbyIdAsync(id);
             if(movie == null)
             {
                 return NotFound();
@@ -86,40 +87,17 @@ namespace Cu_ServicePattern_Movies_01.Controllers
                 moviesCreateViewModel.Actors = await _formBuilderService.GetActorsDropDown();
                return View(moviesCreateViewModel);
             }
-            //create the movie
-            var movie = new Movie();
-            movie.Title = moviesCreateViewModel.Title;
-            movie.Price = moviesCreateViewModel.Price;
-            movie.ReleaseDate = moviesCreateViewModel.ReleaseDate;
-            movie.CompanyId = moviesCreateViewModel.CompanyId;
-            //actors
-            movie.Actors = await _movieDbContext
-                .Actors
-                .Where(m => moviesCreateViewModel.ActorIds.Contains(m.Id)).ToListAsync();
-            //Directors
-            //get the list of the selected directors
-            var selectedDirectors = moviesCreateViewModel.Directors
-                .Where(d => d.IsSelected == true)
+            //call the MovieService
+            var directorIds = moviesCreateViewModel.Directors.Where(d => d.IsSelected == true)
                 .Select(d => d.Value);
-            movie.Directors = await _movieDbContext
-                .Directors
-                .Where(d => selectedDirectors.Contains(d.Id)).ToListAsync();
-            //image
-            if(moviesCreateViewModel.Image != null)
+            var result = await _movieService.CreateAsync(moviesCreateViewModel.Title,moviesCreateViewModel.ReleaseDate
+                ,moviesCreateViewModel.Price,moviesCreateViewModel.CompanyId,moviesCreateViewModel.Image,
+                moviesCreateViewModel.ActorIds,directorIds);
+            if(result == true)
             {
-                movie.Image = await _fileService.Store(moviesCreateViewModel.Image);
+                return RedirectToAction("Index");
             }
-            //add to context
-            await _movieDbContext.Movies.AddAsync(movie);
-            try 
-            {
-                await _movieDbContext.SaveChangesAsync();
-            }
-            catch(DbUpdateException dbUpdateException)
-            {
-                Console.WriteLine(dbUpdateException.Message);
-            }
-            return RedirectToAction("Index");
+            return RedirectToAction("Error","Home");
         }
         //update
         [HttpGet]
@@ -168,58 +146,17 @@ namespace Cu_ServicePattern_Movies_01.Controllers
                 moviesUpdateViewModel.Actors = await _formBuilderService.GetActorsDropDown();
                 return View(moviesUpdateViewModel);
             }
-            //update
-            var movie = await _movieDbContext
-                .Movies
-                .Include(m => m.Actors)
-                .Include(m => m.Directors)
-                .FirstOrDefaultAsync(m => m.Id == moviesUpdateViewModel.Id);
-            if (movie == null) 
+            var directorIds = moviesUpdateViewModel.Directors
+                .Where(d => d.IsSelected == true).Select(d => d.Value);
+            var result = await _movieService.UpdateAsync(moviesUpdateViewModel.Id,moviesUpdateViewModel.ReleaseDate,
+                moviesUpdateViewModel.Title,moviesUpdateViewModel.Price,moviesUpdateViewModel.CompanyId,
+                moviesUpdateViewModel.Image,moviesUpdateViewModel.ActorIds, directorIds);
+            if(result == true)
             {
-                return NotFound();
+                return RedirectToAction("Index");
             }
-            //edit the properties
-            movie.Title = moviesUpdateViewModel.Title;
-            movie.ReleaseDate = moviesUpdateViewModel.ReleaseDate;
-            movie.CompanyId = moviesUpdateViewModel.CompanyId;
-            movie.Price = moviesUpdateViewModel.Price;
-            //actors
-            movie.Actors.Clear();
-            movie.Actors = await _movieDbContext
-                .Actors
-                .Where(m => moviesUpdateViewModel.ActorIds.Contains(m.Id)).ToListAsync();
-            //Directors
-            movie.Directors.Clear();
-            //get the list of the selected directors
-            var selectedDirectors = moviesUpdateViewModel.Directors
-                .Where(d => d.IsSelected == true)
-                .Select(d => d.Value);
-            movie.Directors = await _movieDbContext
-                .Directors
-                .Where(d => selectedDirectors.Contains(d.Id)).ToListAsync();
-            //image
-            if(moviesUpdateViewModel.Image != null)
-            {
-                if(movie.Image != null)
-                {
-                    movie.Image = await _fileService.Update(moviesUpdateViewModel.Image, movie.Image);
-                }
-                else
-                {
-                    movie.Image = await _fileService.Store(moviesUpdateViewModel.Image);
-                }
-                
-            }
-            //savechanges
-            try
-            {
-                await _movieDbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateException dbUpdateException)
-            {
-                Console.WriteLine(dbUpdateException.Message);
-            }
-            return RedirectToAction("Index");
+            return RedirectToAction("Error","Home");
+
         }
 
         [HttpGet]
@@ -242,30 +179,15 @@ namespace Cu_ServicePattern_Movies_01.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(MoviesDeleteViewModel moviesDeleteViewModel)
         {
-            var movie = await _movieDbContext.Movies
-                .FirstOrDefaultAsync(m => m.Id == moviesDeleteViewModel.Id);
-            if (movie == null)
-            {
-                return NotFound();
-            }
-            //delete the movie image
-            if(!String.IsNullOrEmpty(movie.Image))
-            {
-                _fileService.Delete(movie.Image);
-            }
             //delete the movie
-            _movieDbContext.Movies.Remove(movie);
+            var result = await _movieService.DeleteAsync(moviesDeleteViewModel.Id);
             //save the changes to the database
             //savechanges
-            try
+            if (result == true)
             {
-                await _movieDbContext.SaveChangesAsync();
+                return RedirectToAction("Index");
             }
-            catch (DbUpdateException dbUpdateException)
-            {
-                Console.WriteLine(dbUpdateException.Message);
-            }
-            return RedirectToAction("Index");
+            return RedirectToAction("Error","Home");
         }
     }
 }

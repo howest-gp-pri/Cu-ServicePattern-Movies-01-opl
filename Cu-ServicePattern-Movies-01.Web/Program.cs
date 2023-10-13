@@ -2,6 +2,7 @@ using Cu_ServicePattern_Movies_01;
 using Cu_ServicePattern_Movies_01.Core.Data;
 using Cu_ServicePattern_Movies_01.Core.Interfaces;
 using Cu_ServicePattern_Movies_01.Core.Services;
+using Cu_ServicePattern_Movies_01.Core.Services.Interfaces;
 using Cu_ServicePattern_Movies_01.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,7 @@ namespace Core_MovieShop_opl_Afst
             //register own services
             builder.Services.AddScoped<IFormBuilderService, FormBuilderService>();
             builder.Services.AddScoped<IFileService, FileService>();
+            builder.Services.AddScoped<IMovieService,MovieService>();
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
