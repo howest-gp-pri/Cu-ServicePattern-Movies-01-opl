@@ -46,7 +46,7 @@ namespace Cu_ServicePattern_Movies_01.Core.Services
                 movie.Image = await _fileService.Store(image);
             }
             //add to context
-            await _movieDbContext.Movies.AddAsync(movie);
+            _movieDbContext.Movies.Add(movie);
             //savechanges
             return await SaveChangesAsync();
         }
